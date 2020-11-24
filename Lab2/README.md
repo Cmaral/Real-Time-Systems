@@ -10,5 +10,6 @@ the black line is detected, or an alternative implementation where it could be d
 
 ## Part 3: Line Tracker
 In the last part you need to create a robot that can simultaneously:
-• Follow the black line that is drawn on the floor using the light sensors.
-• Keep a constant distance to detected objects in front of it using the distance sensors.
+
+- Follow the black line that is drawn on the floor using the light sensors.
+- Keep a constant distance to detected objects in front of it using the distance sensors.
