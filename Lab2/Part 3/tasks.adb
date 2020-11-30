@@ -87,15 +87,18 @@ package body Tasks is
   begin
     loop
     -- Speed
+    -- Gets current distance to closest obstacle from the shared object, adjusts speed accordingly to maintain a visible gap
       Distance := SharedData.get_distance;
       if Distance > 70 then Motor_Speed := 0;
       elsif Distance > 65 then Motor_Speed := 200;
       else Motor_Speed := 400;
       end if;
 
+    -- Sets motor speed in the shared object
       SharedData.set_motor_speed(Motor_Speed);
 
     -- Direction 
+    -- Gets current desired direction from the shared object, adjusts car direction by changing motor speeds accordingly
       Direction := SharedData.get_direction;
       if Direction = Straight then 
           Left_M := Motor_Speed;
@@ -108,6 +111,7 @@ package body Tasks is
           Right_M := Motor_Speed*2;
       end if;
 
+    -- Sets calculated speeds of left and right motors
       set_motor_speed(LeftMotor, Left_M);
       set_motor_speed(RightMotor, Right_M); 
 
@@ -123,30 +127,38 @@ package body Tasks is
     Line_Detection : Integer;
   begin
     loop
+      -- Line detection using middle front part light sensor
       Line_Detection := read_light_sensor(LS2);
 
       if Line_Detection > 800 then
-        -- Blank detected, find line
+        -- If blank is detected by middle light sensor, check left and right sensors to find the line
+        -- Then set new direction in the shared object to turn towards the line
         if read_light_sensor(LS1) <= 800 then SharedData.set_direction(Left);
         elsif read_light_sensor(LS3) <= 800  then SharedData.set_direction(Right);
         end if;
       elsif Line_Detection <= 800 then
+        -- If the line is detected by the middle sensor, set direction in the shared object to continue going straight
         SharedData.set_direction(Straight);
       end if;
+
       Next_Time := Next_Time + Period_LineFollowing;
       delay until Next_Time;
     end loop;
   end LineFollowingTask;
 
   
-  -- Reads distance sensor and sends commands to MotorCOntrol
+  -- Reads distance sensor and sends commands to MotorControl
   task body DistanceTask is
       Next_Time : Time := Time_Zero;
       Obstacle_Distance : Integer;
   begin
     loop
+      -- Read distance to closest obstacle by using the distance sensor in the front of the car
       Obstacle_Distance := read_distance_sensor;
+
+      -- Set current distance to obstacle in the shared object
       SharedData.set_distance(Obstacle_Distance);
+      
       Next_Time := Next_Time + Period_Distance;
       delay until Next_Time;
     end loop;
