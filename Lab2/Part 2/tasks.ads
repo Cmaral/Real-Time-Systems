@@ -6,7 +6,7 @@ package Tasks is
 private
 
   --  Define periods and times  --  
-  Period_Display : Time_Span := Milliseconds(500); 
+  Period_Sensors : Time_Span := Milliseconds(10); 
   Time_Zero      : Time := Clock;
       
   --  Other specifications  --

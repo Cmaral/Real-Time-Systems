@@ -12,8 +12,6 @@ package body Tasks is
       entry Wait (id : out EventID);
       procedure Signal (id : in EventID);
   private
-    -- assign priority that is ceiling of the
-    -- user tasks ’ priorities
       current_id : EventID; -- event data
       signalled : Boolean := false; -- flag for event signal
   end Event;
@@ -48,17 +46,20 @@ package body Tasks is
     Previous_Button : EventID;
     Line_Detection : Integer := 0;
     On_Line : Boolean := False;
+    Next_Time : Time := Time_Zero;
   begin
 
     loop
 
       -- Button press detection
       if button_pressed(UpButton) then 
+        -- If Up button is pressed, check for Right and Left button presses, for diagonal movement
         if button_pressed(RightButton) then Current_Button := UpRightPressed;
         elsif button_pressed(LeftButton) then Current_Button := UpLeftPressed;
         else Current_Button := UpPressed;
         end if;
       elsif button_pressed(DownButton) then 
+        -- If Down button is pressed, check for Right and Left button presses, for diagonal movement
         if button_pressed(RightButton) then Current_Button := DownRightPressed;
         elsif button_pressed(LeftButton) then Current_Button := DownLeftPressed;
         else Current_Button := DownPressed;
@@ -68,16 +69,17 @@ package body Tasks is
       else Current_Button := NonePressed;
       end if;
       
-      -- Send event signal if currently pressed button is different than the previous state
+      -- Send event signal only if currently pressed button is different from the previous state
       if Current_Button /= Previous_Button then 
         Event.Signal(Current_Button);
       end if;
+      -- Store currently pressed button state for future comparison
       Previous_Button := Current_Button;
 
-      -- Line detection with light sensor
+      -- Line detection using middle front part light sensor
       Line_Detection := read_light_sensor(LS2);
 
-      -- Send event signal if line detection state has changed from previous state
+      -- Send event signal only if line detection state has changed from the previous state
       if Line_Detection > 800 and On_Line then
         Event.Signal(BlankDetected);
         On_Line := False;
@@ -86,7 +88,9 @@ package body Tasks is
         On_Line := True;
       end if;
 
-      delay 0.01;
+      -- Delay, task checks sensors periodically (10ms)
+      Next_Time := Next_Time + Period_Sensors;
+      delay until Next_Time;
     end loop;
   end EventDispatcherTask;
 
@@ -101,20 +105,19 @@ package body Tasks is
     loop
       Event.Wait(Received_Event);
 
-      -- If a line is detected, halt the car and signal current state with Can_Move flag
-      -- Once no line is detected, allow the car to resume by changing state of the Can_Move flag
+      -- If a line is detected, halt the car and signal current state with Can_Move flag      
       if Received_Event = LineDetected then
         Can_Move := False;
         Left_M := 0;
         Right_M := 0;
         Put_Line("Car stopped, line detected");
+      -- When no line is detected, allow the car to resume by changing the state of the Can_Move flag
       elsif Received_Event = BlankDetected then
         Can_Move := True;
         Put_Line("Car can resume, no line detected");
       end if;
 
-      -- While car is in the blank area and buttons are being pressed, receive event signal 
-      -- and move accordingly
+      -- While car is in the blank area and buttons are being pressed, receive event signals and move accordingly to the buttons pressed
       if Can_Move then
           if Received_Event = UpPressed then
             Left_M := Motor_Speed;
@@ -155,6 +158,7 @@ package body Tasks is
           end if;
        end if;
       
+      -- Set the motor speeds according to the direction selected 
        set_motor_speed(LeftMotor, Left_M);
        set_motor_speed(RightMotor, Right_M); 
     end loop;
